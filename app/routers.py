@@ -1,21 +1,41 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi.responses import JSONResponse
 
 # sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from dependencies import get_dependencies
 from schemas import QuestionRequest
 from services import *
-from utils import verify_api_key
 
 router = APIRouter()
 
 @router.get("/")
-def home(api_key: str = Depends(verify_api_key)):
+def home():
     return {"message": "Hello, World!"}
 
+@router.post("/upload-pdf")
+async def upload_pdf(file: UploadFile = File(...)):
+    if file.content_type != "application/pdf":
+        return JSONResponse(status_code=400, content={"error": "Only PDF files are allowed"})
+    
+    process_pdf(file, file.filename)
+
+    return JSONResponse(
+        status_code=200,  # 또는 201
+        content={"message": "PDF uploaded successfully", "filename": file.filename}
+    )
+
+
 @router.post("/ask")
-async def ask(request: QuestionRequest, dependencies: dict = Depends(get_dependencies), api_key: str = Depends(verify_api_key)):
-    return ask_llm(
+async def ask(request: QuestionRequest, dependencies: dict = Depends(get_dependencies)):
+    answer = ask_llm(
         request,
         dependencies["model_manager"],
     )
+
+    return JSONResponse(
+        status_code=200,  # 또는 201
+        content={"message": "PDF uploaded successfully", "answer": answer}
+    )
+
+
     
